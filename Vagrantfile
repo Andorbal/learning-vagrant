@@ -13,8 +13,34 @@ Vagrant.configure("2") do |config|
   # doesn't already exist on the user's system.
   config.vm.box_url = "http://files.vagrantup.com/precise64.box"
 
+  config.vm.provider :virtualbox do |vb|
+    vb.customize [ "modifyvm", :id, "--memory", 512]
+    vb.customize [ "modifyvm", :id, "--cpus", 1]
+  end
+
   config.vm.provision :chef_solo do |chef|
-    chef.add_recipe "apache2"
+    # chef.add_recipe "nodejs"
+    chef.add_recipe "rabbitmq"
+  end
+
+  config.vm.define :web do |web|
+    web.vm.provision :chef_solo do |chef|
+      chef.add_recipe "apache2"
+    end
+    web.vm.network :public_network, ip: "192.168.50.1", auto_config: false
+    web.vm.network :private_network, ip: "10.0.0.1"
+    web.vm.network :forwarded_port, guest: 80, host: 8080
+    web.vm.network :forwarded_port, guest: 22, host: 2220
+  end
+
+  config.vm.define :db do |db|
+    db.vm.provision :chef_solo do |chef|
+      chef.add_recipe "mongodb"
+    end
+    db.vm.network :public_network, ip: "192.168.50.2", auto_config: false
+    db.vm.network :private_network, ip: "10.0.0.2"
+    db.vm.network :forwarded_port, guest: 80, host: 8081
+    db.vm.network :forwarded_port, guest: 22, host: 2221
   end
 
   # Create a forwarded port mapping which allows access to a specific port
